@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshBasket - User Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <h2>FreshBasket</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <span class="icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">📦</span>
+                    My Orders
+                </a>
+                <a href="shop.html" class="nav-item">
+                    <span class="icon">🛒</span>
+                    Shop
+                </a>
+                <a href="home.html" class="nav-item">
+                    <span class="icon">🏠</span>
+                    Home
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1>User Dashboard</h1>
+                <div class="user-info">
+                    <span class="welcome">Welcome, John Doe</span>
+                    <img src="user-avatar.jpg" alt="User" class="avatar">
+                </div>
+            </header>
+
+            <!-- Stats Cards -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3>Total Orders</h3>
+                    <p class="stat-value">25</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Orders</h3>
+                    <p class="stat-value">3</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Spent</h3>
+                    <p class="stat-value">$349.99</p>
+                </div>
+            </div>
+
+            <!-- Orders Table Section -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>Order History</h2>
+                    <div class="table-actions">
+                        <input type="text" placeholder="Search orders..." class="search-input">
+                        <select class="filter-select">
+                            <option value="all">All Orders</option>
+                            <option value="pending">Pending</option>
+                            <option value="delivered">Delivered</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderTableBody">
+                        <!-- Sample Order Rows -->
+                        <tr>
+                            <td>#ORD-2024-001</td>
+                            <td>2024-01-15</td>
+                            <td>
+                                <div class="order-items">
+                                    <span class="item-count">3 items</span>
+                                    <div class="item-tooltip">
+                                        • Fresh Apples (2kg)<br>
+                                        • Organic Bananas (1kg)<br>
+                                        • Fresh Carrots (500g)
+                                    </div>
+                                </div>
+                            </td>
+                            <td>$45.99</td>
+                            <td><span class="status-badge status-delivered">Delivered</span></td>
+                            <td>
+                                <button class="action-btn btn-view" onclick="viewOrderDetails('ORD-2024-001')">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Add more sample rows as needed -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add this script tag at the bottom of the body -->
+    <script>
+        // Order details functionality
+        function viewOrderDetails(orderId) {
+            const orderDetails = {
+                'ORD-2024-001': {
+                    items: [
+                        { name: 'Fresh Apples', quantity: '2kg', price: '$25.99' },
+                        { name: 'Organic Bananas', quantity: '1kg', price: '$12.00' },
+                        { name: 'Fresh Carrots', quantity: '500g', price: '$8.00' }
+                    ],
+                    total: '$45.99',
+                    status: 'Delivered',
+                    date: '2024-01-15',
+                    address: '123 Main St, City, Country'
+                }
+                // Add more order details as needed
+            };
+
+            showOrderModal(orderDetails[orderId]);
+        }
+
+        function showOrderModal(details) {
+            const modal = document.createElement('div');
+            modal.className = 'order-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Order Details</h2>
+                    <div class="order-info">
+                        <p><strong>Date:</strong> ${details.date}</p>
+                        <p><strong>Status:</strong> ${details.status}</p>
+                        <p><strong>Delivery Address:</strong> ${details.address}</p>
+                    </div>
+                    <div class="order-items-list">
+                        <h3>Items</h3>
+                        ${details.items.map(item => `
+                            <div class="order-item">
+                                <span>${item.name} (${item.quantity})</span>
+                                <span>${item.price}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="order-total">
+                        <strong>Total:</strong> ${details.total}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="modal-close">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Add event listeners when the document is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            document.querySelector('.search-input').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#orderTableBody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+
+            // Filter functionality
+            document.querySelector('.filter-select').addEventListener('change', function(e) {
+                const filterValue = e.target.value;
+                const rows = document.querySelectorAll('#orderTableBody tr');
+                
+                rows.forEach(row => {
+                    const status = row.querySelector('.status-badge').textContent.toLowerCase();
+                    row.style.display = (filterValue === 'all' || status === filterValue) ? '' : 'none';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
