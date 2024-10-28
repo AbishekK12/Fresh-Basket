@@ -20,19 +20,19 @@ iam_client = boto3.client('iam', region_name=AWS_REGION)
 # RDS Configuration for multiple regions
 db_configs = {
     'primary': {
-        'host': 'your-primary-rds-endpoint',
+        'host': 'freshbsktdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com',
         'user': 'admin',
-        'password': 'your-password',
-        'database': 'fresh',
+        'password': 'Freshbasket123',
+        'database': 'freshb',
         'port': 3306,
         'pool_size': 10,
         'pool_name': 'primary_pool'
     },
     'replica': {
-        'host': 'your-replica-rds-endpoint',
-        'user': 'readonly',
-        'password': 'your-password',
-        'database': 'fresh',
+        'host': 'freshbsktdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com',
+        'user': 'admin',
+        'password': 'Freshbasket123',
+        'database': 'freshb',
         'port': 3306,
         'pool_size': 5,
         'pool_name': 'replica_pool'
