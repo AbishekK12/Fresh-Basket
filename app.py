@@ -1,234 +1,243 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import mysql.connector
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+import boto3
 import mysql.connector.pooling
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"  # Needed for flash messages
 
-db_config = {
-    'host': 'freshbasketdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com',
-    'user': 'root',
-    'password': 'Freshbasket123',
-    'database': 'fresh'
+# AWS Configuration
+AWS_REGION = 'us-east-1'
+AWS_ACCESS_KEY = 'your-access-key'
+AWS_SECRET_KEY = 'your-secret-key'
+
+# Initialize AWS services
+ec2_client = boto3.client('ec2', region_name=AWS_REGION)
+rds_client = boto3.client('rds', region_name=AWS_REGION)
+iam_client = boto3.client('iam', region_name=AWS_REGION)
+
+# RDS Configuration for multiple regions
+db_configs = {
+    'primary': {
+        'host': 'your-primary-rds-endpoint',
+        'user': 'admin',
+        'password': 'your-password',
+        'database': 'fresh',
+        'port': 3306,
+        'pool_size': 10,
+        'pool_name': 'primary_pool'
+    },
+    'replica': {
+        'host': 'your-replica-rds-endpoint',
+        'user': 'readonly',
+        'password': 'your-password',
+        'database': 'fresh',
+        'port': 3306,
+        'pool_size': 5,
+        'pool_name': 'replica_pool'
+    }
 }
 
-# Connection pool setup
-cnxpool =mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
-                                                      pool_size=5,
-                                                      **db_config)
+# Connection pools for different regions
+connection_pools = {
+    'primary': mysql.connector.pooling.MySQLConnectionPool(**db_configs['primary']),
+    'replica': mysql.connector.pooling.MySQLConnectionPool(**db_configs['replica'])
+}
 
-# Function to establish a database connection
-def get_db_connection():
+# Flask SQLAlchemy Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql://{db_configs['primary']['user']}:{db_configs['primary']['password']}@{db_configs['primary']['host']}/{db_configs['primary']['database']}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = 'your_secret_key'
+
+# Initialize SQLAlchemy
+db = SQLAlchemy(app)
+
+# Health monitoring function
+def check_system_health():
     try:
-        return cnxpool.get_connection()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-        return None
+        # Check EC2 status
+        ec2_status = ec2_client.describe_instance_status()
+        
+        # Check RDS status
+        rds_status = rds_client.describe_db_instances()
+        
+        # Check security status
+        iam_status = iam_client.get_account_summary()
+        
+        return {
+            'ec2_health': 'healthy' if ec2_status else 'unhealthy',
+            'rds_health': 'healthy' if rds_status else 'unhealthy',
+            'security_status': 'secure' if iam_status else 'warning'
+        }
+    except Exception as e:
+        return {'error': str(e)}
 
-@app.route('/')
-def home():
-    return render_template('home.html')
+# Auto-scaling trigger
+def trigger_auto_scaling():
+    try:
+        response = ec2_client.describe_auto_scaling_groups()
+        # Implement auto-scaling logic
+        return {'status': 'success'}
+    except Exception as e:
+        return {'error': str(e)}
+
+# Database failover
+def switch_to_replica():
+    global current_pool
+    try:
+        current_pool = connection_pools['replica']
+        return {'status': 'switched_to_replica'}
+    except Exception as e:
+        return {'error': str(e)}
+
+# Database Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    mobile = db.Column(db.String(20))
+    address = db.Column(db.String(200))
+    role = db.Column(db.String(20), default='user')
+    orders = db.relationship('Order', backref='user', lazy=True)
+
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50))
+    stock = db.Column(db.Integer, default=0)
+    image_url = db.Column(db.String(200))
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date_ordered = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending')
+    total_amount = db.Column(db.Float, nullable=False)
+
+# Routes
+@app.route('/api/health')
+def health_check():
+    return jsonify(check_system_health())
+
+@app.route('/api/scaling/trigger', methods=['POST'])
+def trigger_scaling():
+    return jsonify(trigger_auto_scaling())
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         name = request.form.get('name')
-        mobile = request.form.get('mobile')
         email = request.form.get('email')
         password = request.form.get('password')
-        default_address = request.form.get('default_address')
-
-        if not default_address:
-            flash('Default address is required!')
+        
+        if User.query.filter_by(email=email).first():
+            flash('Email already exists', 'error')
             return redirect(url_for('register'))
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'INSERT INTO users (name, mobile, email, password, address) VALUES (%s, %s, %s, %s, %s)',
-            (name, mobile, email, password, default_address))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        flash('Thank you for registering!')
-        return redirect(url_for('login'))
-
+        
+        hashed_password = generate_password_hash(password)
+        new_user = User(name=name, email=email, password=hashed_password)
+        
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Registration successful!', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Registration failed. Please try again.', 'error')
+    
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM users WHERE email = %s AND password = %s', (email, password))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if user:
-            session['user_id'] = user['id']
-            session['user_name'] = user['name']
-            flash('Login successful!')
-            return redirect(url_for('shop'))
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['user_name'] = user.name
+            session['user_role'] = user.role
+            flash('Login successful!', 'success')
+            return redirect(url_for('home'))
         else:
-            flash('Invalid email or password!')
-
+            flash('Invalid email or password', 'error')
+    
     return render_template('login.html')
 
-@app.route('/shop')
-def shop():
-    return render_template('shop.html')
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out', 'info')
+    return redirect(url_for('home'))
 
-@app.route('/add_to_cart', methods=['POST'])
-def add_to_cart():
-    item_data = request.get_json()
-    item_name = item_data['name']
-    item_price = item_data['price']
-    item_quantity = item_data['quantity']
-
-    cart_items = session.get('cart_items', [])
-
-    # Check if the item is already in the cart
-    item_found = False
-    for item in cart_items:
-        if item['name'] == item_name:
-            item['quantity'] += item_quantity
-            item_found = True
-            break
-
-    if not item_found:
-        cart_items.append({
-            'name': item_name,
-            'price': item_price,
-            'quantity': item_quantity
-        })
-
-    session['cart_items'] = cart_items
-    return jsonify(success=True)
-
-@app.route('/items', methods=['GET', 'POST'])
-def items():
-    if request.method == 'POST':
-        item_name = request.form.get('name')
-        item_price = float(request.form.get('price'))
-        item_quantity = int(request.form.get('quantity'))
-
-        cart_items = session.get('cart_items', [])
-
-        for item in cart_items:
-            if item['name'] == item_name:
-                item['quantity'] += item_quantity
-                break
-        else:
-            cart_items.append({'name': item_name, 'price': item_price, 'quantity': item_quantity})
-
-        session['cart_items'] = cart_items
-        flash(f'{item_name} added to your cart!')
-        return redirect(url_for('items'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT item_id, item_name, price FROM items')
-    items = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    cart_items = session.get('cart_items', [])
-    return render_template('items.html', items=items, cart_items=cart_items)
-
-@app.route('/place_order', methods=['POST'])
-def place_order():
-    if 'user_id' not in session:
-        return jsonify(success=False, message="User not logged in")
-
-    data = request.get_json()
-    delivery_address = data.get('address', 'Default Address')
-    payment_method = data['payment_method']
-    items = data['items']
-    total_price = data['total_price']
-
+@app.route('/products')
+def products():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'INSERT INTO orders (user_id, delivery_address, payment_method, status, order_date, total_price) '
-            'VALUES (%s, %s, %s, %s, %s, %s)',
-            (session['user_id'], delivery_address, payment_method, 'Yet to Ship', datetime.now(), total_price)
-        )
-        order_id = cursor.lastrowid
-
-        for item in items:
-            cursor.execute(
-                'INSERT INTO order_items (order_id, item_name, quantity, price) '
-                'VALUES (%s, %s, %s, %s)',
-                (order_id, item['name'], item['quantity'], item['price'])
-            )
-        conn.commit()
+        conn = connection_pools['primary'].get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM products")
+        products = cursor.fetchall()
         cursor.close()
         conn.close()
-        return jsonify(success=True)
+        return render_template('products.html', products=products)
     except Exception as e:
-        conn.rollback()
-        return jsonify(success=False, message=str(e))
+        flash('Error fetching products', 'error')
+        return redirect(url_for('home'))
 
-@app.route('/user_dashboard')
-def user_dashboard():
-    if 'user_id' not in session:
-        flash('You need to log in to access your dashboard!')
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('''
-        SELECT o.id, o.total_price, o.status, o.order_date,
-               GROUP_CONCAT(CONCAT(oi.item_name, ' (x', oi.item_quantity, ')')) AS items
-        FROM orders o
-        JOIN order_items oi ON o.id = oi.order_id
-        WHERE o.user_id = %s
-        GROUP BY o.id
-    ''', (session['user_id'],))
-    orders = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return render_template('user_dashboard.html', orders=orders)
-
-@app.route('/admin_dashboard', methods=['GET', 'POST'])
-def admin_dashboard():
+@app.route('/add_product', methods=['GET', 'POST'])
+def add_product():
     if request.method == 'POST':
-        order_id = request.form['order_id']
-        status = request.form['status']
+        name = request.form.get('name')
+        price = float(request.form.get('price'))
+        description = request.form.get('description')
+        category = request.form.get('category')
+        stock = int(request.form.get('stock'))
+        image_url = request.form.get('image_url')
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('UPDATE orders SET status = %s WHERE id = %s', (status, order_id))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        new_product = Product(
+            name=name,
+            price=price,
+            description=description,
+            category=category,
+            stock=stock,
+            image_url=image_url
+        )
 
-        flash('Order status updated successfully!', 'success')
+        try:
+            db.session.add(new_product)
+            db.session.commit()
+            flash('Product added successfully!', 'success')
+            return redirect(url_for('products'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error adding product. Please try again.', 'error')
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('''
-        SELECT o.id, o.total_price, o.status, o.order_date, u.name AS user_name,
-               GROUP_CONCAT(CONCAT(oi.item_name, ' (x', oi.item_quantity, ')') SEPARATOR ', ') AS items
-        FROM orders o
-        JOIN users u ON o.user_id = u.id
-        JOIN order_items oi ON o.id = oi.order_id
-        GROUP BY o.id
-    ''')
-    orders = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    return render_template('add_product.html')
 
-    return render_template('admin_dashboard.html', orders=orders)
+# Initialize database
+def init_db():
+    with app.app_context():
+        db.create_all()
+        
+        # Create admin user if it doesn't exist
+        admin = User.query.filter_by(email='admin@example.com').first()
+        if not admin:
+            admin = User(
+                name='Admin',
+                email='admin@example.com',
+                password=generate_password_hash('admin123'),
+                role='admin'
+            )
+            db.session.add(admin)
+            db.session.commit()
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
