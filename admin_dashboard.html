@@ -38,7 +38,7 @@
                     <i class="fas fa-cog icon"></i>
                     Settings
                 </a>
-                <a href="home.html" class="nav-item">
+                <a href="#" class="nav-item" onclick="logout()">
                     <i class="fas fa-sign-out-alt icon"></i>
                     Logout
                 </a>
@@ -166,6 +166,24 @@
     </div>
 
     <script>
+        // Add this at the top of your existing script
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if admin is logged in
+            const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+            if (!isAdminLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Your existing admin dashboard initialization code...
+        });
+
+        // Add logout functionality
+        function logout() {
+            localStorage.removeItem('isAdminLoggedIn');
+            window.location.href = 'login.html';
+        }
+
         // Dashboard statistics
         let dashboardStats = {
             totalOrders: 0,
