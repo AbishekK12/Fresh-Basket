@@ -62,7 +62,7 @@ nav:hover {
 }
 
 #hero {
-    background-image: url('bg_home.jpeg'); /* Replace with your image path */
+    background-image: url('/static/images/bg_home.jpeg'); /* Replace with your image path */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

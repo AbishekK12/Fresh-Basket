@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="aws-config.js"></script>
-    <script src="health-monitor.js"></script>
+    <script src="/static/js/aws-config.js"></script>
+    <script src="/static/js/health-monitor.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FreshBasket-Home</title>
-    <link rel="stylesheet" href='styles.css'>
+    <link rel="stylesheet" href='/static/css/styles.css'>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -14,12 +14,12 @@
     <div id="customAlert" class="custom-alert"></div>
     <header>
         <nav>
-            <a href="home.html" class="logo">FreshBasket</a>
+            <a href="/" class="logo">FreshBasket</a>
             <div class="nav-links">
-                <a href="home.html" class="active">Home</a>
-                <a href="shop.html">Shop</a>
-                <a href="cart.html">Cart</a>
-                <a href="login.html">Login</a>
+                <a href="/" class="active">Home</a>
+                <a href="/shop">Shop</a>
+                <a href="/cart">Cart</a>
+                <a href="/login">Login</a>
             </div>
         </nav>
     </header>
@@ -48,10 +48,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const featuredProducts = [
-                { name: 'Fresh Apples', price: 2.99, image: 'apple.jpg' },
-                { name: 'Organic Bananas', price: 1.99, image: 'banana.jpg' },
-                { name: 'Crisp Lettuce', price: 1.49, image: 'lettuce.jpg' },
-                { name: 'Juicy Oranges', price: 3.49, image: 'orange.jpg' }
+                { name: 'Fresh Apples', price: 2.99, image: '/static/images/apple.jpg' },
+                { name: 'Organic Bananas', price: 1.99, image: '/static/images/banana.jpg' },
+                { name: 'Crisp Lettuce', price: 1.49, image: '/static/images/lettuce.jpg' },
+                { name: 'Juicy Oranges', price: 3.49, image: '/static/images/orange.jpg' }
             ];
 
             const productList = document.getElementById('product-list');
@@ -84,12 +84,12 @@
             
             if (isLoggedIn) {
                 // If logged in, redirect to the shop page
-                window.location.href = 'shop.html';
+                window.location.href = '/shop';
             } else {
                 // If not logged in, show alert and redirect to login page
                 showCustomAlert('Please log in to start shopping.');
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = '/login';
                 }, 2000);
             }
         }
@@ -105,7 +105,7 @@
             } else {
                 showCustomAlert('Please log in to add items to your cart.');
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = '/login';
                 }, 2000);
             }
         }

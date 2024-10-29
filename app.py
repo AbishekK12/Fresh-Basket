@@ -46,7 +46,8 @@ connection_pools = {
 }
 
 # Flask SQLAlchemy Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql://{db_configs['primary']['user']}:{db_configs['primary']['password']}@{db_configs['primary']['host']}/{db_configs['primary']['database']}"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:Freshbasket123@freshbsktdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com/freshb'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'
 
@@ -117,6 +118,30 @@ class Order(db.Model):
     date_ordered = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='pending')
     total_amount = db.Column(db.Float, nullable=False)
+
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/shop')
+def shop():
+    return render_template('shop.html')
+
+@app.route('/cart')
+def cart():
+    return render_template('cart.html')
+
+@app.route('/items')
+def items():
+    return render_template('items.html')
+
+@app.route('/user_dashboard')
+def user_dashboard():
+    return render_template('user_dashboard.html')
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    return render_template('admin_dashboard.html')   
 
 # Routes
 @app.route('/api/health')
@@ -194,49 +219,121 @@ def products():
 @app.route('/add_product', methods=['GET', 'POST'])
 def add_product():
     if request.method == 'POST':
-        name = request.form.get('name')
-        price = float(request.form.get('price'))
-        description = request.form.get('description')
-        category = request.form.get('category')
-        stock = int(request.form.get('stock'))
-        image_url = request.form.get('image_url')
-
-        new_product = Product(
-            name=name,
-            price=price,
-            description=description,
-            category=category,
-            stock=stock,
-            image_url=image_url
-        )
-
         try:
-            db.session.add(new_product)
-            db.session.commit()
+            # Get form data
+            name = request.form.get('name')
+            price = float(request.form.get('price', 0))
+            description = request.form.get('description')
+            category = request.form.get('category')
+            stock = int(request.form.get('stock', 0))
+            image_url = request.form.get('image_url')
+
+            # Print debug information
+            print(f"Adding product: {name}, {price}, {category}")
+
+            # Create product using direct SQL
+            conn = connection_pools['primary'].get_connection()
+            cursor = conn.cursor()
+            
+            insert_query = """
+                INSERT INTO products (name, price, description, category, stock, image_url)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (name, price, description, category, stock, image_url))
+            conn.commit()
+            
+            cursor.close()
+            conn.close()
+
             flash('Product added successfully!', 'success')
             return redirect(url_for('products'))
+            
         except Exception as e:
-            db.session.rollback()
-            flash('Error adding product. Please try again.', 'error')
+            print(f"Error adding product: {str(e)}")
+            flash(f'Error adding product: {str(e)}', 'error')
+            return redirect(url_for('add_product'))
 
     return render_template('add_product.html')
 
 # Initialize database
 def init_db():
-    with app.app_context():
-        db.create_all()
-        
-        # Create admin user if it doesn't exist
-        admin = User.query.filter_by(email='admin@example.com').first()
-        if not admin:
-            admin = User(
-                name='Admin',
-                email='admin@example.com',
-                password=generate_password_hash('admin123'),
-                role='admin'
+    try:
+        conn = connection_pools['primary'].get_connection()
+        cursor = conn.cursor()
+
+        # Create products table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS products (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                price FLOAT NOT NULL,
+                description TEXT,
+                category VARCHAR(50),
+                stock INT DEFAULT 0,
+                image_url VARCHAR(200)
             )
-            db.session.add(admin)
-            db.session.commit()
+        """)
+
+        # Create orders table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                date_ordered DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR(20) DEFAULT 'pending',
+                total_amount FLOAT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+
+        # Create order_items table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_items (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id INT NOT NULL,
+                product_id INT NOT NULL,
+                quantity INT NOT NULL,
+                price FLOAT NOT NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(id),
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            )
+        """)
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Database initialized successfully")
+        
+    except Exception as e:
+        print(f"Error initializing database: {str(e)}")
+
+# Add this route to test database connection
+@app.route('/test_db')
+def test_db():
+    try:
+        # Test direct database query
+        conn = connection_pools['primary'].get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SHOW TABLES")
+        tables = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify({'tables': tables})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/view_products')
+def view_products():
+    try:
+        conn = connection_pools['primary'].get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM products")
+        products = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify({'products': products})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     init_db()

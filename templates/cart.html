@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="aws-config.js"></script>
-    <script src="health-monitor.js"></script>
+    <script src="/static/js/aws-config.js"></script>
+    <script src="/static/js/health-monitor.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FreshBasket - Cart</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href='styles.css'>
+    <link rel="stylesheet" href='/static/css/styles.css'>
     <style>
         /* Add these styles to your existing CSS or include them in the head */
         .cart-summary {
@@ -111,12 +111,12 @@
     <div class="page-container">
         <header>
             <nav>
-                <a href="home.html" class="logo">FreshBasket</a>
+                <a href="/" class="logo">FreshBasket</a>
                 <div class="nav-links">
-                    <a href="home.html">Home</a>
-                    <a href="shop.html">Shop</a>
-                    <a href="cart.html" class="active">Cart</a>
-                    <a href="login.html">Login</a>
+                    <a href="/">Home</a>
+                    <a href="/shop">Shop</a>
+                    <a href="/cart" class="active">Cart</a>
+                    <a href="/login">Login</a>
                 </div>
             </nav>
         </header>
@@ -159,7 +159,7 @@
                 cartItems.innerHTML = `
                     <div class="empty-cart">
                         <p>Your cart is empty</p>
-                        <a href="shop.html" class="btn-primary">Continue Shopping</a>
+                        <a href="/shop" class="btn-primary">Continue Shopping</a>
                     </div>
                 `;
                 return;
@@ -259,7 +259,7 @@
 
             // Redirect to user dashboard after a short delay
             setTimeout(() => {
-                window.location.href = 'user_dashboard.html';
+                window.location.href = '/user_dashboard';
             }, 3000);
 
             // Update admin dashboard

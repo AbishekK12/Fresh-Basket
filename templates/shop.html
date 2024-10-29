@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="aws-config.js"></script>
-    <script src="health-monitor.js"></script>
+    <script src="/static/js/aws-config.js"></script>
+    <script src="/static/js/health-monitor.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FreshBasket - Shop</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"> 
-    <link rel="stylesheet" href='styles.css'>
+    <link rel="stylesheet" href='/static/css/styles.css'>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -17,8 +17,8 @@
                 <a href="/" class="nav-logo">FreshBasket</a>
             </div>
             <div class="top-buttons">
-                <a href="home.html" class="nav-button">Home</a>
-                <a href="cart.html" class="nav-button cart-button">
+                <a href="/" class="nav-button">Home</a>
+                <a href="/cart" class="nav-button cart-button">
                     View Cart
                     <span class="cart-icon">🛒</span>
                     <span class="cart-count">0</span>
@@ -64,10 +64,10 @@
             <div class="footer-section">
                 <h3>Quick Links</h3>
                 <ul>
-                    <li><a href="home.html">Home</a></li>
-                    <li><a href="shop.html">Shop</a></li>
-                    <li><a href="cart.html">Cart</a></li>
-                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/shop">Shop</a></li>
+                    <li><a href="/cart">Cart</a></li>
+                    <li><a href="#">Contact</a></li>
                 </ul>
             </div>
             
@@ -89,12 +89,12 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const products = [
-                { name: 'Fresh Apples', price: 2.99, image: 'apple.jpg', category: 'fruits' },
-                { name: 'Organic Bananas', price: 1.99, image: 'banana.jpg', category: 'fruits' },
-                { name: 'Crisp Lettuce', price: 1.49, image: 'lettuce.jpg', category: 'vegetables' },
-                { name: 'Ripe Tomatoes', price: 3.49, image: 'tomato.jpg', category: 'vegetables' },
-                { name: 'Sweet Oranges', price: 4.99, image: 'orange.jpg', category: 'fruits' },
-                { name: 'Fresh Carrots', price: 1.79, image: 'carrot.jpg', category: 'vegetables' }
+                { name: 'Fresh Apples', price: 2.99, image: '/static/images/apple.jpg', category: 'fruits' },
+                { name: 'Organic Bananas', price: 1.99, image: '/static/images/banana.jpg', category: 'fruits' },
+                { name: 'Crisp Lettuce', price: 1.49, image: '/static/images/lettuce.jpg', category: 'vegetables' },
+                { name: 'Ripe Tomatoes', price: 3.49, image: '/static/images/tomato.jpg', category: 'vegetables' },
+                { name: 'Sweet Oranges', price: 4.99, image: '/static/images/orange.jpg', category: 'fruits' },
+                { name: 'Fresh Carrots', price: 1.79, image: '/static/images/carrot.jpg', category: 'vegetables' }
             ];
 
             const productList = document.getElementById('product-list');

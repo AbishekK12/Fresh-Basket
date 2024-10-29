@@ -6,10 +6,10 @@
     <title>FreshBasket - Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin_dashboard.css">
+    <link rel="stylesheet" href="/static/css/admin_dashboard.css">
     <!-- Add this in the head section -->
-    <script src="aws-config.js"></script>
-    <script src="health-monitor.js"></script>
+    <script src="/static/js/aws-config.js"></script>
+    <script src="/static/js/health-monitor.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -166,22 +166,42 @@
     </div>
 
     <script>
-        // Add this at the top of your existing script
         document.addEventListener('DOMContentLoaded', function() {
             // Check if admin is logged in
             const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
             if (!isAdminLoggedIn) {
-                window.location.href = 'login.html';
+                window.location.href = '/login';
                 return;
             }
             
-            // Your existing admin dashboard initialization code...
+            // Initialize health monitoring
+            const healthMonitor = new HealthMonitor();
+            
+            // Update region information
+            async function updateRegionInfo() {
+                const endpoint = await loadBalancer().getEndpoint();
+                document.getElementById('currentRegion').textContent = 
+                    endpoint.includes('primary') ? 'US East (Primary)' : 'US West (Backup)';
+            }
+            
+            // Initial updates
+            updateDashboardStats();
+            updateOrdersTable();
+            updateRegionInfo();
+
+            // Set up real-time updates
+            setInterval(() => {
+                updateDashboardStats();
+                updateOrdersTable();
+            }, 5000); // Update every 5 seconds
+            
+            setInterval(updateRegionInfo, 60000); // Check region every minute
         });
 
         // Add logout functionality
         function logout() {
             localStorage.removeItem('isAdminLoggedIn');
-            window.location.href = 'login.html';
+            window.location.href = '/login';
         }
 
         // Dashboard statistics
@@ -459,19 +479,6 @@
             }, 5000);
         }
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial updates
-            updateDashboardStats();
-            updateOrdersTable();
-
-            // Set up real-time updates
-            setInterval(() => {
-                updateDashboardStats();
-                updateOrdersTable();
-            }, 5000); // Update every 5 seconds
-        });
-
         // Search functionality
         document.querySelector('.search-bar input').addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
@@ -639,24 +646,6 @@
             }
         `;
         document.head.appendChild(style);
-
-        // Add this to your existing script section
-        <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const healthMonitor = new HealthMonitor();
-            
-            // Update region information
-            async function updateRegionInfo() {
-                const endpoint = await loadBalancer().getEndpoint();
-                document.getElementById('currentRegion').textContent = 
-                    endpoint.includes('primary') ? 'US East (Primary)' : 'US West (Backup)';
-            }
-            
-            // Initialize monitoring
-            updateRegionInfo();
-            setInterval(updateRegionInfo, 60000); // Check every minute
-        });
-        </script>
     </script>
 </body>
 </html>
