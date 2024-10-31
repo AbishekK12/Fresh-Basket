@@ -46,7 +46,8 @@ connection_pools = {
 }
 
 # Flask SQLAlchemy Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:Freshbasket123@freshbsktdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com/freshb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:Freshbasket123@freshbsktdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com:3306/freshb'
+
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'
@@ -94,6 +95,7 @@ def switch_to_replica():
 
 # Database Models
 class User(db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -113,8 +115,9 @@ class Product(db.Model):
     image_url = db.Column(db.String(200))
 
 class Order(db.Model):
+    __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date_ordered = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='pending')
     total_amount = db.Column(db.Float, nullable=False)
