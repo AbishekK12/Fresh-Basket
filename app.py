@@ -14,7 +14,7 @@ db_config = {
 }
 
 # Connection pool setup
-cnxpool =mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
+cnxpool = mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
                                                       pool_size=5,
                                                       **db_config)
 
@@ -44,16 +44,30 @@ def register():
             return redirect(url_for('register'))
 
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'INSERT INTO users (name, mobile, email, password, address) VALUES (%s, %s, %s, %s, %s)',
-            (name, mobile, email, password, default_address))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        if conn is None:
+            flash('Database connection failed.')
+            return redirect(url_for('register'))
 
-        flash('Thank you for registering!')
-        return redirect(url_for('login'))
+        try:
+            cursor = conn.cursor()
+            print(f"Inserting user: {name}, {mobile}, {email}, {password}, {default_address}")
+            cursor.execute(
+                'INSERT INTO users (name, mobile, email, password, address) VALUES (%s, %s, %s, %s, %s)',
+                (name, mobile, email, password, default_address)
+            )
+            conn.commit()
+            cursor.close()
+
+            flash('Thank you for registering!')
+            return redirect(url_for('login'))
+
+        except mysql.connector.Error as e:
+            print(f"Database error: {e}")
+            flash('Error occurred while registering. Please try again.')
+            return redirect(url_for('register'))
+
+        finally:
+            conn.close()
 
     return render_template('register.html')
 
@@ -184,7 +198,7 @@ def user_dashboard():
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('''
+    cursor.execute(''' 
         SELECT o.id, o.total_price, o.status, o.order_date,
                GROUP_CONCAT(CONCAT(oi.item_name, ' (x', oi.item_quantity, ')')) AS items
         FROM orders o
@@ -231,4 +245,4 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', orders=orders)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0",port=5000,debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
