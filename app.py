@@ -50,7 +50,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:Freshbasket123@fr
 
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'your_secret_key'
+app.secret_key = 'Freshbasket123'
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
@@ -340,4 +340,4 @@ def view_products():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000,debug=True)
