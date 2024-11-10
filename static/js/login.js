@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Here you would typically verify credentials with your backend
                 localStorage.setItem('isLoggedIn', 'true');
-                window.location.href = 'shop.html';
+                window.location.href = '/shop';
             } catch (error) {
                 console.error('Login error:', error);
                 showCustomAlert('Login failed. Please try again.');
