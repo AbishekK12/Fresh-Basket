@@ -4,13 +4,13 @@ from datetime import datetime
 import mysql.connector.pooling
 
 app = Flask(__name__)
-app.secret_key = "Freshbasket123"  # Needed for flash messages
+app.secret_key = "binascii.hexlify(os.urandom(24)).decode()"  # Needed for flash messages
 
 db_config = {
-    'host': 'freshbsktdb.c5kyko40s4hb.us-east-1.rds.amazonaws.com',
+    'host': 'frshbskt.ctfmc2mxuxo0.us-east-1.rds.amazonaws.com',
     'user': 'admin',
     'password': 'Freshbasket123',
-    'database': 'freshb'
+    'database': 'fresh'
 }
 
 # Connection pool setup
